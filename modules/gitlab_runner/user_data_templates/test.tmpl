@@ -1,0 +1,12 @@
+#!/bin/bash -xe
+exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash
+cat <<EOF | sudo tee /etc/apt/preferences.d/pin-gitlab-runner.pref
+Explanation: Prefer GitLab provided packages over the Debian native ones
+Package: gitlab-runner
+Pin: origin packages.gitlab.com
+Pin-Priority: 1001
+EOF
+apt-cache madison gitlab-runner
+sudo apt-get install gitlab-runner=${gitlab_runner_version}
+gitlab-runner register --non-interactive --url ${gitlab_url} --registration-token ${registration_url} --executor "docker" --docker-image alpine:latest --description "docker-runner" --tag-list ${tags} --run-untagged="true" --locked="false" --access-level="not_protected"
